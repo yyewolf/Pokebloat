@@ -41,6 +41,9 @@ func generateImage(r []*APIResult) io.Reader {
 	// Load sprites first (located in sprites/)
 	sprites := make(map[string]image.Image)
 	for _, result := range r {
+		if pokedex[result.Label] == nil {
+			continue
+		}
 		sprites[result.Label], _ = gg.LoadPNG("sprites/" + pokedex[result.Label][0].Nat + ".png")
 	}
 
