@@ -81,7 +81,7 @@ func (h *handler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.In
 }
 
 func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	if cmd.Event.User.ID != AdminID {
+	if cmd.Event.Member.User.ID != AdminID {
 		return &api.InteractionResponseData{
 			Content: option.NewNullableString("You are not allowed to use this command."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
