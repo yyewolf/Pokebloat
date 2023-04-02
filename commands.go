@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -25,17 +26,71 @@ func newHandler(s *state.State) *handler {
 	// Automatically defer handles if they're slow.
 	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
 	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("scan", h.cmdScan)
+	h.AddFunc("scan_pokemon", h.cmdScanPokemon)
+	h.AddFunc("status", h.cmdStatus)
+	h.AddFunc("announce", h.cmdAnnounce)
 	return h
+}
+
+func (h *handler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	if manager == nil {
+		return &api.InteractionResponseData{
+			Content: option.NewNullableString("All shards are not ready yet"),
+			Flags:   discord.MessageFlags(discord.EphemeralMessage),
+		}
+	}
+	guildCount := 0
+	userCount := 0
+	for s := 0; s < manager.NumShards(); s++ {
+		shard := manager.Shard(s)
+		state := shard.(*state.State)
+		guilds, err := state.GuildStore.Guilds()
+		if err != nil {
+			return &api.InteractionResponseData{
+				Content: option.NewNullableString("Error getting guilds"),
+				Flags:   discord.MessageFlags(discord.EphemeralMessage),
+			}
+		}
+		for _, g := range guilds {
+			users, _ := state.MemberStore.Members(g.ID)
+			userCount += len(users)
+		}
+		guildCount += len(guilds)
+	}
+
+	shard := h.s.Ready().Shard.ShardID()
+	shardCount := h.s.Ready().Shard.NumShards()
+
+	embed := &discord.Embed{
+		Title:       "Status : Alive",
+		Description: fmt.Sprintf("Serving **%d** guilds and **%d** users on shard **%d**/**%d**.", guildCount, userCount, shard, shardCount-1),
+		Color:       0x00ff00,
+	}
+
+	return &api.InteractionResponseData{
+		Embeds: &[]discord.Embed{*embed},
+		Flags:  discord.MessageFlags(discord.EphemeralMessage),
+	}
 }
 
 func (h *handler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return &api.InteractionResponseData{
 		Content: option.NewNullableString("Pong!"),
+		Flags:   discord.MessageFlags(discord.EphemeralMessage),
 	}
 }
 
-func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	if cmd.Event.User.ID != AdminID {
+		return &api.InteractionResponseData{
+			Content: option.NewNullableString("You are not allowed to use this command."),
+			Flags:   discord.MessageFlags(discord.EphemeralMessage),
+		}
+	}
+	return h.cmdScan(ctx, cmd, "pokemons")
+}
+
+func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string) *api.InteractionResponseData {
 	var message *discord.Message
 	data := cmd.Event.Data.(*discord.CommandInteraction)
 	if data.Resolved.Messages != nil {
@@ -72,7 +127,7 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 
 	if imageURL == "" {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("No image found"),
+			Content: option.NewNullableString("Could not find an image in the message"),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
@@ -83,19 +138,19 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	rep, err := http.Get(imageURL)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Error downloading image"),
+			Content: option.NewNullableString("Could not download image from message"),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
 
 	// Send to the API
-	url := os.Getenv("API_URL")
+	url := fmt.Sprintf(os.Getenv("API_URL"), model)
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Error uploading image"),
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
@@ -106,7 +161,7 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	r, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Error uploading image"),
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
@@ -115,7 +170,7 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	rep, err = client.Do(r)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Error uploading image"),
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
@@ -126,7 +181,7 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	err = json.Unmarshal(resp, &result)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Error uploading image"),
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
@@ -138,6 +193,5 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData) *api.In
 				Reader: generateImage(result),
 			},
 		},
-		Flags: discord.MessageFlags(discord.EphemeralMessage),
 	}
 }

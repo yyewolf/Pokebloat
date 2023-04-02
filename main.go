@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/api/cmdroute"
-	"github.com/diamondburned/arikawa/v3/api/webhook"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/session/shard"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/joho/godotenv"
@@ -22,10 +23,21 @@ var commands = []api.CreateCommandData{
 		Description: "ping pong!",
 	},
 	{
+		Name:        "status",
+		Description: "Get the status of the bot",
+	},
+	{
+		Name:        "announce",
+		Description: "Send the announcement out to all servers",
+	},
+	{
 		Type: discord.MessageCommand,
-		Name: "scan",
+		Name: "scan_pokemon",
 	},
 }
+
+var manager *shard.Manager
+var AdminID = discord.UserID(0)
 
 func main() {
 	godotenv.Load()
@@ -34,46 +46,63 @@ func main() {
 		log.Fatalln("No $BOT_TOKEN given.")
 	}
 
-	var (
-		webhookAddr   = os.Getenv("WEBHOOK_ADDR")
-		webhookPubkey = os.Getenv("WEBHOOK_PUBKEY")
-	)
+	aID := os.Getenv("ADMIN_ID")
+	if aID == "" {
+		log.Fatalln("No $ADMIN_ID given.")
+	}
+	i, _ := strconv.ParseInt(aID, 10, 64)
+	AdminID = discord.UserID(i)
 
-	if webhookAddr != "" {
-		state := state.NewAPIOnlyState(token, nil)
+	var shardNum int
+	newShard := state.NewShardFunc(func(m *shard.Manager, s *state.State) {
+		// Add the needed Gateway intents.
+		s.AddIntents(gateway.IntentGuildMessages)
+		s.AddIntents(gateway.IntentDirectMessages)
 
-		h := newHandler(state)
+		s.AddIntents(gateway.IntentGuilds)
 
-		if err := overwriteCommands(state); err != nil {
+		h := newHandler(s)
+		s.AddInteractionHandler(h)
+
+		if err := overwriteCommands(s); err != nil {
 			log.Fatalln("cannot update commands:", err)
 		}
 
-		srv, err := webhook.NewInteractionServer(webhookPubkey, h)
+		u, err := s.Me()
 		if err != nil {
-			log.Fatalln("cannot create interaction server:", err)
+			log.Fatalln("failed to get myself:", err)
 		}
 
-		log.Println("listening and serving at", webhookAddr+"/")
-		log.Fatalln(http.ListenAndServe(webhookAddr, srv))
-	} else {
-		state := state.New("Bot " + token)
-		state.AddIntents(gateway.IntentGuilds)
-		state.AddHandler(func(*gateway.ReadyEvent) {
-			me, _ := state.Me()
-			log.Println("connected to the gateway as", me.Tag())
+		// Open the gateway connection.
+		if err := s.Open(context.Background()); err != nil {
+			log.Fatalln("failed to open state:", err)
+		}
+
+		s.Gateway().Send(context.Background(), &gateway.UpdatePresenceCommand{
+			Status: "online",
+			Activities: []discord.Activity{
+				{
+					Name: "I'm back.",
+					Type: discord.GameActivity,
+				},
+			},
 		})
 
-		h := newHandler(state)
-		state.AddInteractionHandler(h)
+		log.Printf("Shard %d/%d started as %s", shardNum, m.NumShards()-1, u.Tag())
 
-		if err := overwriteCommands(state); err != nil {
-			log.Fatalln("cannot update commands:", err)
-		}
+		shardNum++
+	})
 
-		if err := h.s.Connect(context.Background()); err != nil {
-			log.Fatalln("cannot connect:", err)
-		}
+	m, err := shard.NewManager("Bot "+token, newShard)
+	if err != nil {
+		log.Fatalln("failed to create shard manager:", err)
 	}
+
+	manager = m
+
+	// Block forever.
+	fmt.Println("Press Ctrl+C to exit.")
+	select {}
 }
 
 func overwriteCommands(s *state.State) error {
