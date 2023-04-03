@@ -145,7 +145,7 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model s
 	// Send to the API
 	url := fmt.Sprintf(os.Getenv("API_URL"), model)
 	if transform {
-		url += "?t=true"
+		url += "&t=true"
 	}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
