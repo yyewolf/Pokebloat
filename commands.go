@@ -26,7 +26,8 @@ func newHandler(s *state.State) *handler {
 	// Automatically defer handles if they're slow.
 	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
 	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("scan_pokemon", h.cmdScanPokemon)
+	h.AddFunc("scan_pokemon_with", h.cmdScanPokemon)
+	h.AddFunc("scan_pokemon_without", h.cmdScanPokemon2)
 	h.AddFunc("status", h.cmdStatus)
 	h.AddFunc("announce", h.cmdAnnounce)
 	return h
@@ -80,17 +81,15 @@ func (h *handler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	}
 }
 
-func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	if cmd.Event.Member.User.ID != AdminID {
-		return &api.InteractionResponseData{
-			Content: option.NewNullableString("You are not allowed to use this command."),
-			Flags:   discord.MessageFlags(discord.EphemeralMessage),
-		}
-	}
-	return h.cmdScan(ctx, cmd, "pokemons")
+func (h *handler) cmdScanPokemon2(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	return h.cmdScan(ctx, cmd, "pokemons", false)
 }
 
-func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string) *api.InteractionResponseData {
+func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	return h.cmdScan(ctx, cmd, "pokemons", true)
+}
+
+func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string, transform bool) *api.InteractionResponseData {
 	var message *discord.Message
 	data := cmd.Event.Data.(*discord.CommandInteraction)
 	if data.Resolved.Messages != nil {
@@ -145,6 +144,9 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model s
 
 	// Send to the API
 	url := fmt.Sprintf(os.Getenv("API_URL"), model)
+	if transform {
+		url += "?t=true"
+	}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
