@@ -20,8 +20,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 )
 
-func newHandler(s *state.State) *handler {
-	h := &handler{s: s}
+func newHandler(s *state.State) *interactionHandler {
+	h := &interactionHandler{s: s}
 
 	h.Router = cmdroute.NewRouter()
 	// Automatically defer handles if they're slow.
@@ -34,14 +34,14 @@ func newHandler(s *state.State) *handler {
 	return h
 }
 
-func (h *handler) cmdInvite(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *interactionHandler) cmdInvite(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return &api.InteractionResponseData{
 		Content: option.NewNullableString("Invite me : https://discord.com/api/oauth2/authorize?client_id=837040988378759249&permissions=8&scope=applications.commands%20bot\nSupport: https://discord.gg/ZEAvn2M762"),
 		Flags:   discord.MessageFlags(discord.EphemeralMessage),
 	}
 }
 
-func (h *handler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *interactionHandler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	if manager == nil {
 		return &api.InteractionResponseData{
 			Content: option.NewNullableString("All shards are not ready yet"),
@@ -84,22 +84,22 @@ func (h *handler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.
 	}
 }
 
-func (h *handler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *interactionHandler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return &api.InteractionResponseData{
 		Content: option.NewNullableString("Pong!"),
 		Flags:   discord.MessageFlags(discord.EphemeralMessage),
 	}
 }
 
-func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *interactionHandler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return h.cmdScan(ctx, cmd, "pokemons", false)
 }
 
-func (h *handler) cmdScanPokemonBg(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *interactionHandler) cmdScanPokemonBg(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return h.cmdScan(ctx, cmd, "pokemons", true)
 }
 
-func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string, transform bool) *api.InteractionResponseData {
+func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string, transform bool) *api.InteractionResponseData {
 	var message *discord.Message
 	data := cmd.Event.Data.(*discord.CommandInteraction)
 	if data.Resolved.Messages != nil {

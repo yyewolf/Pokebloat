@@ -65,8 +65,12 @@ func main() {
 
 		s.AddIntents(gateway.IntentGuilds)
 
-		h := newHandler(s)
-		s.AddInteractionHandler(h)
+		interactionsHandling := newHandler(s)
+
+		s.AddInteractionHandler(interactionsHandling)
+		s.AddHandler(func(e *gateway.MessageCreateEvent) {
+			handleMessages(s, e)
+		})
 
 		if err := overwriteCommands(s); err != nil {
 			log.Fatalln("cannot update commands:", err)
@@ -113,7 +117,7 @@ func overwriteCommands(s *state.State) error {
 	return cmdroute.OverwriteCommands(s, commands)
 }
 
-type handler struct {
+type interactionHandler struct {
 	*cmdroute.Router
 	s *state.State
 }
