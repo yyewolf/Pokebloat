@@ -26,7 +26,7 @@ func newHandler(s *state.State) *handler {
 	// Automatically defer handles if they're slow.
 	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
 	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("pokemon_bg", h.cmdScanPokemonBg)
+	h.AddFunc("pokemon_acc", h.cmdScanPokemonBg)
 	h.AddFunc("pokemon", h.cmdScanPokemon)
 	h.AddFunc("status", h.cmdStatus)
 	h.AddFunc("announce", h.cmdAnnounce)

@@ -139,7 +139,7 @@
          "Nat": "28"
       }
    ],
-   "Nidoran ♀": [
+   "Nidoran": [
       {
          "Nat": "29"
       }
@@ -152,11 +152,6 @@
    "Nidoqueen": [
       {
          "Nat": "31"
-      }
-   ],
-   "Nidoran ♂": [
-      {
-         "Nat": "32"
       }
    ],
    "Nidorino": [
@@ -3399,7 +3394,7 @@
          "Nat": "680"
       }
    ],
-   "S Aegislash": [
+   "Aegislash": [
       {
          "Nat": "681"
       }
@@ -3719,7 +3714,7 @@
          "Nat": "744"
       }
    ],
-   "Day Lycanroc": [
+   "Lycanroc": [
       {
          "Nat": "745"
       }
@@ -4114,7 +4109,7 @@
          "Nat": "823"
       }
    ],
-   "Blipibug": [
+   "Blipbug": [
       {
          "Nat": "824"
       }

@@ -36,7 +36,7 @@ var commands = []api.CreateCommandData{
 	},
 	{
 		Type: discord.MessageCommand,
-		Name: "pokemon_bg",
+		Name: "pokemon_acc",
 	},
 }
 
