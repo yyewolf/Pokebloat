@@ -52,10 +52,10 @@ func generateImage(r []*APIResult) io.Reader {
 	// So 128 + 70 = 198 pixels
 	dc := gg.NewContext(426, 198)
 
+	dc.LoadFontFace("Akzidenz-grotesk-bold.ttf", 20)
+	dc.SetRGB255(255, 255, 255)
 	// Draw the sprites
 	for i, result := range r {
-		// Draw the strings
-		dc.SetRGB255(255, 255, 255)
 		confidence := fmt.Sprintf("%.2f%%", result.Probability)
 		dc.DrawStringAnchored(result.Label, float64(10+i*148+64), 138+10, 0.5, 0.5)
 		dc.DrawStringAnchored(confidence, float64(10+i*148+64), 138+30, 0.5, 0.5)
