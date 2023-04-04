@@ -52,7 +52,7 @@ func generateImage(r []*APIResult) io.Reader {
 	// So 128 + 70 = 198 pixels
 	dc := gg.NewContext(426, 198)
 
-	dc.LoadFontFace("Akzidenz-grotesk-bold.ttf", 20)
+	dc.LoadFontFace("font/Akzidenz-grotesk-bold.ttf", 20)
 	dc.SetRGB255(255, 255, 255)
 	// Draw the sprites
 	for i, result := range r {
