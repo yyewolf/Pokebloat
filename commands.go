@@ -36,7 +36,7 @@ func newHandler(s *state.State) *handler {
 
 func (h *handler) cmdInvite(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return &api.InteractionResponseData{
-		Content: option.NewNullableString("https://discord.com/api/oauth2/authorize?client_id=837040988378759249&permissions=8&scope=applications.commands%20bot"),
+		Content: option.NewNullableString("Invite me : https://discord.com/api/oauth2/authorize?client_id=837040988378759249&permissions=8&scope=applications.commands%20bot\nSupport: https://discord.gg/ZEAvn2M762"),
 		Flags:   discord.MessageFlags(discord.EphemeralMessage),
 	}
 }
@@ -235,7 +235,30 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model s
 		}
 	}
 
+	// return &api.InteractionResponseData{
+	// 	Files: []sendpart.File{
+	// 		{
+	// 			Name:   "result.png",
+	// 			Reader: generateImage(result),
+	// 		},
+	// 	},
+	// }
+
+	// Embed with the result
+	embed := discord.Embed{
+		Title:       "Scan Result",
+		Description: "The following pokemons were found in the image",
+		Color:       0x00ff00,
+		Image: &discord.EmbedImage{
+			URL: "attachment://result.png",
+		},
+		Footer: &discord.EmbedFooter{
+			Text: "Support : https://discord.gg/ZEAvn2M762",
+		},
+	}
+
 	return &api.InteractionResponseData{
+		Embeds: &[]discord.Embed{embed},
 		Files: []sendpart.File{
 			{
 				Name:   "result.png",
