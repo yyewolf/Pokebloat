@@ -154,7 +154,7 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 
 	if transform {
 		// Send to the API for transformation
-		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("API_URL"), model)
+		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), model)
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		part, err := writer.CreateFormFile("upload", "image."+imageExtension)

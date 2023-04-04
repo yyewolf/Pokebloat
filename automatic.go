@@ -61,7 +61,7 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	}
 
 	// Send to the API for transformation
-	url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("API_URL"), "pokemons")
+	url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), "pokemons")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
