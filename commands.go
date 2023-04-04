@@ -26,8 +26,8 @@ func newHandler(s *state.State) *handler {
 	// Automatically defer handles if they're slow.
 	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
 	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("scan_pokemon_with", h.cmdScanPokemon)
-	h.AddFunc("scan_pokemon_without", h.cmdScanPokemon2)
+	h.AddFunc("pokemon_bg", h.cmdScanPokemonBg)
+	h.AddFunc("pokemon", h.cmdScanPokemon)
 	h.AddFunc("status", h.cmdStatus)
 	h.AddFunc("announce", h.cmdAnnounce)
 	return h
@@ -81,11 +81,11 @@ func (h *handler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.In
 	}
 }
 
-func (h *handler) cmdScanPokemon2(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return h.cmdScan(ctx, cmd, "pokemons", false)
 }
 
-func (h *handler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+func (h *handler) cmdScanPokemonBg(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return h.cmdScan(ctx, cmd, "pokemons", true)
 }
 
@@ -142,11 +142,42 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model s
 		}
 	}
 
-	// Send to the API
-	url := fmt.Sprintf(os.Getenv("API_URL"), model)
 	if transform {
-		url += "&t=true"
+		// Send to the API for transformation
+		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("API_URL"), model)
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("upload", "image."+imageExtension)
+		if err != nil {
+			return &api.InteractionResponseData{
+				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+				Flags:   discord.MessageFlags(discord.EphemeralMessage),
+			}
+		}
+		io.Copy(part, rep.Body)
+		writer.Close()
+		rep.Body.Close()
+
+		r, err := http.NewRequest("POST", url, body)
+		if err != nil {
+			return &api.InteractionResponseData{
+				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+				Flags:   discord.MessageFlags(discord.EphemeralMessage),
+			}
+		}
+		r.Header.Set("Content-Type", writer.FormDataContentType())
+		client := &http.Client{}
+		rep, err = client.Do(r)
+		if err != nil {
+			return &api.InteractionResponseData{
+				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+				Flags:   discord.MessageFlags(discord.EphemeralMessage),
+			}
+		}
 	}
+
+	// Send to the API
+	url := fmt.Sprintf("%s/models/%s/predict?k=3", os.Getenv("API_URL"), model)
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
@@ -177,6 +208,12 @@ func (h *handler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model s
 		}
 	}
 	resp, err := io.ReadAll(rep.Body)
+	if err != nil {
+		return &api.InteractionResponseData{
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+			Flags:   discord.MessageFlags(discord.EphemeralMessage),
+		}
+	}
 	rep.Body.Close()
 
 	var result []*APIResult

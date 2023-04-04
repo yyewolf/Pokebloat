@@ -32,11 +32,11 @@ var commands = []api.CreateCommandData{
 	},
 	{
 		Type: discord.MessageCommand,
-		Name: "scan_pokemon_without",
+		Name: "pokemon",
 	},
 	{
 		Type: discord.MessageCommand,
-		Name: "scan_pokemon_with",
+		Name: "pokemon_bg",
 	},
 }
 
