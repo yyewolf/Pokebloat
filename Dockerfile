@@ -8,5 +8,5 @@ RUN go build -o /app/main .
 FROM alpine:3.17
 WORKDIR /app
 COPY --from=builder /app/main .
-COPY font .
+COPY font font
 CMD ["./main"]
