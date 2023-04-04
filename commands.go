@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -28,9 +29,16 @@ func newHandler(s *state.State) *handler {
 	h.AddFunc("ping", h.cmdPing)
 	h.AddFunc("pokemon_acc", h.cmdScanPokemonBg)
 	h.AddFunc("pokemon", h.cmdScanPokemon)
+	h.AddFunc("invite", h.cmdInvite)
 	h.AddFunc("status", h.cmdStatus)
-	h.AddFunc("announce", h.cmdAnnounce)
 	return h
+}
+
+func (h *handler) cmdInvite(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	return &api.InteractionResponseData{
+		Content: option.NewNullableString("https://discord.com/api/oauth2/authorize?client_id=837040988378759249&permissions=8&scope=applications.commands%20bot"),
+		Flags:   discord.MessageFlags(discord.EphemeralMessage),
+	}
 }
 
 func (h *handler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
@@ -61,10 +69,12 @@ func (h *handler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.
 
 	shard := h.s.Ready().Shard.ShardID()
 	shardCount := h.s.Ready().Shard.NumShards()
+	// tasks is the number of goroutines running
+	tasks := runtime.NumGoroutine()
 
 	embed := &discord.Embed{
 		Title:       "Status : Alive",
-		Description: fmt.Sprintf("Serving **%d** guilds and **%d** users on shard **%d**/**%d**.", guildCount, userCount, shard, shardCount-1),
+		Description: fmt.Sprintf("**Servers**: %d\n**Current Shard**: %d/%d\n**Users**: %d\n**Tasks**: tasks", guildCount, shard+1, shardCount, userCount, tasks),
 		Color:       0x00ff00,
 	}
 

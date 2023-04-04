@@ -23,12 +23,12 @@ var commands = []api.CreateCommandData{
 		Description: "ping pong!",
 	},
 	{
-		Name:        "status",
-		Description: "Get the status of the bot",
+		Name:        "invite",
+		Description: "Invite the bot to your server",
 	},
 	{
-		Name:        "announce",
-		Description: "Send the announcement out to all servers",
+		Name:        "status",
+		Description: "Get the status of the bot",
 	},
 	{
 		Type: discord.MessageCommand,
