@@ -17,6 +17,10 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 )
 
+var noTransform = []discord.UserID{
+	discord.UserID(669228505128501258),
+}
+
 func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	// Check if there's an embed
 	if len(e.Message.Embeds) == 0 {
@@ -60,8 +64,42 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 		return
 	}
 
-	// Send to the API for transformation
-	url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), "pokemons")
+	client := &http.Client{}
+
+	needTransform := true
+	for _, id := range noTransform {
+		if id == message.Author.ID {
+			needTransform = false
+			break
+		}
+	}
+
+	if needTransform {
+		// Send to the API for transformation
+		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), "pokemons")
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("upload", "image."+imageExtension)
+		if err != nil {
+			return
+		}
+		io.Copy(part, rep.Body)
+		writer.Close()
+		rep.Body.Close()
+
+		r, err := http.NewRequest("POST", url, body)
+		if err != nil {
+			return
+		}
+		r.Header.Set("Content-Type", writer.FormDataContentType())
+		rep, err = client.Do(r)
+		if err != nil {
+			return
+		}
+	}
+
+	// Send to the API
+	url := fmt.Sprintf("%s/models/%s/predict?k=3", os.Getenv("API_URL"), "pokemons")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
@@ -73,29 +111,6 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	rep.Body.Close()
 
 	r, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return
-	}
-	r.Header.Set("Content-Type", writer.FormDataContentType())
-	client := &http.Client{}
-	rep, err = client.Do(r)
-	if err != nil {
-		return
-	}
-
-	// Send to the API
-	url = fmt.Sprintf("%s/models/%s/predict?k=3", os.Getenv("API_URL"), "pokemons")
-	body = &bytes.Buffer{}
-	writer = multipart.NewWriter(body)
-	part, err = writer.CreateFormFile("upload", "image."+imageExtension)
-	if err != nil {
-		return
-	}
-	io.Copy(part, rep.Body)
-	writer.Close()
-	rep.Body.Close()
-
-	r, err = http.NewRequest("POST", url, body)
 	if err != nil {
 		return
 	}
