@@ -24,7 +24,7 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	}
 
 	// Check if the embed is a pokemon embed
-	if !strings.Contains(e.Message.Embeds[0].Title, "wild pokémon has appeared!") {
+	if !strings.Contains(e.Message.Embeds[0].Title, "wild pokémon has") {
 		return
 	}
 
