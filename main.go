@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"pokebloat/commands"
+	"pokebloat/components"
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -17,30 +19,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var commands = []api.CreateCommandData{
-	{
-		Name:        "ping",
-		Description: "ping pong!",
-	},
-	{
-		Name:        "invite",
-		Description: "Invite the bot to your server",
-	},
-	{
-		Name:        "status",
-		Description: "Get the status of the bot",
-	},
-	{
-		Type: discord.MessageCommand,
-		Name: "pokemon",
-	},
-	{
-		Type: discord.MessageCommand,
-		Name: "pokemon_acc",
-	},
-}
-
-var manager *shard.Manager
 var AdminID = discord.UserID(0)
 
 func main() {
@@ -65,12 +43,16 @@ func main() {
 
 		s.AddIntents(gateway.IntentGuilds)
 
-		interactionsHandling := newHandler(s)
+		interactionsHandling := commands.NewHandler(s, m)
 
 		s.AddInteractionHandler(interactionsHandling)
 		s.AddHandler(func(e *gateway.MessageCreateEvent) {
 			handleMessages(s, e)
 		})
+
+		componentHandling := components.NewHandler(s, m)
+
+		s.AddInteractionHandler(componentHandling)
 
 		if err := overwriteCommands(s); err != nil {
 			log.Fatalln("cannot update commands:", err)
@@ -101,12 +83,10 @@ func main() {
 		shardNum++
 	})
 
-	m, err := shard.NewManager("Bot "+token, newShard)
+	_, err := shard.NewManager("Bot "+token, newShard)
 	if err != nil {
 		log.Fatalln("failed to create shard manager:", err)
 	}
-
-	manager = m
 
 	// Block forever.
 	fmt.Println("Press Ctrl+C to exit.")
@@ -114,12 +94,7 @@ func main() {
 }
 
 func overwriteCommands(s *state.State) error {
-	return cmdroute.OverwriteCommands(s, commands)
-}
-
-type interactionHandler struct {
-	*cmdroute.Router
-	s *state.State
+	return cmdroute.OverwriteCommands(s, commands.Commands)
 }
 
 func errorResponse(err error) *api.InteractionResponseData {

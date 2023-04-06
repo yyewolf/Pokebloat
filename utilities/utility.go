@@ -1,4 +1,4 @@
-package main
+package utilities
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ func init() {
 	}
 }
 
-func generateImage(r []*APIResult) io.Reader {
+func GenerateImage(r []*APIResult) io.Reader {
 	// Load sprites first (located in sprites/)
 	sprites := make(map[string]image.Image)
 	for _, result := range r {
@@ -50,7 +50,9 @@ func generateImage(r []*APIResult) io.Reader {
 	// Sprites are 128x128 pixels, we space them out by 20 pixels each, and we need a 10 pixel margin on each side, for 3 sprites, that's 10 + 128 + 20 + 128 + 20 + 128 + 10 = 426 pixels
 	// For the height, we want to write text above and below the sprites, so we need 2 lines of text, each 20 pixels high, and 10 pixels of margin on each side, for 2 lines of text, that's 10 + 20 + 10 + 20 + 10 = 70 pixels
 	// So 128 + 70 = 198 pixels
-	dc := gg.NewContext(426, 198)
+	width := 128*len(r) + 20*(len(r)-1) + 20
+	height := 128 + 80
+	dc := gg.NewContext(width, height)
 
 	dc.LoadFontFace("font/Akzidenz-grotesk-bold.ttf", 20)
 	dc.SetRGB255(255, 255, 255)

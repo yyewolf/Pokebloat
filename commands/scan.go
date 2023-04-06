@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -9,87 +9,15 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"runtime"
+	"pokebloat/utilities"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/api/cmdroute"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 )
-
-func newHandler(s *state.State) *interactionHandler {
-	h := &interactionHandler{s: s}
-
-	h.Router = cmdroute.NewRouter()
-	// Automatically defer handles if they're slow.
-	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
-	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("pokemon_acc", h.cmdScanPokemonBg)
-	h.AddFunc("pokemon", h.cmdScanPokemon)
-	h.AddFunc("invite", h.cmdInvite)
-	h.AddFunc("status", h.cmdStatus)
-	return h
-}
-
-func (h *interactionHandler) cmdInvite(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	return &api.InteractionResponseData{
-		Content: option.NewNullableString("Invite me : https://discord.com/api/oauth2/authorize?client_id=837040988378759249&permissions=8&scope=applications.commands%20bot\nSupport: https://discord.gg/ZEAvn2M762"),
-		Flags:   discord.MessageFlags(discord.EphemeralMessage),
-	}
-}
-
-func (h *interactionHandler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	if manager == nil {
-		return &api.InteractionResponseData{
-			Content: option.NewNullableString("All shards are not ready yet"),
-			Flags:   discord.MessageFlags(discord.EphemeralMessage),
-		}
-	}
-	guildCount := 0
-	userCount := 0
-	for s := 0; s < manager.NumShards(); s++ {
-		shard := manager.Shard(s)
-		state := shard.(*state.State)
-		guilds, err := state.GuildStore.Guilds()
-		if err != nil {
-			return &api.InteractionResponseData{
-				Content: option.NewNullableString("Error getting guilds"),
-				Flags:   discord.MessageFlags(discord.EphemeralMessage),
-			}
-		}
-		for _, g := range guilds {
-			users, _ := state.MemberStore.Members(g.ID)
-			userCount += len(users)
-		}
-		guildCount += len(guilds)
-	}
-
-	shard := h.s.Ready().Shard.ShardID()
-	shardCount := h.s.Ready().Shard.NumShards()
-	// tasks is the number of goroutines running
-	tasks := runtime.NumGoroutine()
-
-	embed := &discord.Embed{
-		Title:       "Status : Alive",
-		Description: fmt.Sprintf("**Servers**: %d\n**Current Shard**: %d/%d\n**Users**: %d\n**Tasks**: tasks", guildCount, shard+1, shardCount, userCount, tasks),
-		Color:       0x00ff00,
-	}
-
-	return &api.InteractionResponseData{
-		Embeds: &[]discord.Embed{*embed},
-		Flags:  discord.MessageFlags(discord.EphemeralMessage),
-	}
-}
-
-func (h *interactionHandler) cmdPing(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	return &api.InteractionResponseData{
-		Content: option.NewNullableString("Pong!"),
-		Flags:   discord.MessageFlags(discord.EphemeralMessage),
-	}
-}
 
 func (h *interactionHandler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
 	return h.cmdScan(ctx, cmd, "pokemons", false)
@@ -153,34 +81,10 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 	}
 
 	if transform {
-		// Send to the API for transformation
-		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), model)
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
-		part, err := writer.CreateFormFile("upload", "image."+imageExtension)
-		if err != nil {
+		rep.Body = utilities.RemoveImageBackground(rep.Body, imageExtension)
+		if rep.Body == nil {
 			return &api.InteractionResponseData{
-				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
-				Flags:   discord.MessageFlags(discord.EphemeralMessage),
-			}
-		}
-		io.Copy(part, rep.Body)
-		writer.Close()
-		rep.Body.Close()
-
-		r, err := http.NewRequest("POST", url, body)
-		if err != nil {
-			return &api.InteractionResponseData{
-				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
-				Flags:   discord.MessageFlags(discord.EphemeralMessage),
-			}
-		}
-		r.Header.Set("Content-Type", writer.FormDataContentType())
-		client := &http.Client{}
-		rep, err = client.Do(r)
-		if err != nil {
-			return &api.InteractionResponseData{
-				Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+				Content: option.NewNullableString("Could not remove background from image"),
 				Flags:   discord.MessageFlags(discord.EphemeralMessage),
 			}
 		}
@@ -226,7 +130,7 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 	}
 	rep.Body.Close()
 
-	var result []*APIResult
+	var result []*utilities.APIResult
 	err = json.Unmarshal(resp, &result)
 	if err != nil {
 		return &api.InteractionResponseData{
@@ -262,7 +166,7 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 		Files: []sendpart.File{
 			{
 				Name:   "result.png",
-				Reader: generateImage(result),
+				Reader: utilities.GenerateImage(result),
 			},
 		},
 	}

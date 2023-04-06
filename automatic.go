@@ -8,6 +8,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"pokebloat/components"
+	"pokebloat/utilities"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -75,27 +77,7 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	}
 
 	if needTransform {
-		// Send to the API for transformation
-		url := fmt.Sprintf("%s/transforms/%s/background_removal", os.Getenv("SECONDARY_API_URL"), "pokemons")
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
-		part, err := writer.CreateFormFile("upload", "image."+imageExtension)
-		if err != nil {
-			return
-		}
-		io.Copy(part, rep.Body)
-		writer.Close()
-		rep.Body.Close()
-
-		r, err := http.NewRequest("POST", url, body)
-		if err != nil {
-			return
-		}
-		r.Header.Set("Content-Type", writer.FormDataContentType())
-		rep, err = client.Do(r)
-		if err != nil {
-			return
-		}
+		rep.Body = utilities.RemoveImageBackground(rep.Body, imageExtension)
 	}
 
 	// Send to the API
@@ -125,7 +107,7 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	}
 	rep.Body.Close()
 
-	var result []*APIResult
+	var result []*utilities.APIResult
 	err = json.Unmarshal(resp, &result)
 	if err != nil {
 		return
@@ -144,13 +126,57 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 		},
 	}
 
-	s.SendMessageComplex(e.ChannelID, api.SendMessageData{
+	cutResult := []*utilities.APIResult{result[0]}
+
+	m, _ := s.SendMessageComplex(e.ChannelID, api.SendMessageData{
 		Embeds: []discord.Embed{embed},
 		Files: []sendpart.File{
 			{
 				Name:   "result.png",
-				Reader: generateImage(result),
+				Reader: utilities.GenerateImage(cutResult),
+			},
+		},
+		Components: []discord.ContainerComponent{
+			&discord.ActionRowComponent{
+				&discord.ButtonComponent{
+					Label:    "More Results",
+					Style:    discord.PrimaryButtonStyle(),
+					CustomID: "more_results",
+				},
 			},
 		},
 	})
+
+	utilities.Cache.Set(m.ID.String(), components.Menu{
+		Data: result,
+		Fn:   moreResult,
+	}, 0)
+}
+
+func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
+	results := ctx.Data.([]*utilities.APIResult)
+	return &api.InteractionResponse{
+		Type: api.UpdateMessage,
+		Data: &api.InteractionResponseData{
+			Embeds: &[]discord.Embed{
+				{
+					Title:       "Scan Results",
+					Description: "The results may be affected by the April Fools event. Come check out the new support server!",
+					Color:       0x00ff00,
+					Image: &discord.EmbedImage{
+						URL: "attachment://result.png",
+					},
+					Footer: &discord.EmbedFooter{
+						Text: "Support : https://discord.gg/ZEAvn2M762",
+					},
+				},
+			},
+			Files: []sendpart.File{
+				{
+					Name:   "result.png",
+					Reader: utilities.GenerateImage(results),
+				},
+			},
+		},
+	}
 }

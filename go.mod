@@ -6,6 +6,7 @@ require (
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/fogleman/gg v1.3.0
 	github.com/joho/godotenv v1.5.1
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 )
 
 require (
