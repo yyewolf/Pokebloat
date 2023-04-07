@@ -203,7 +203,7 @@ func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
 
 func report(ctx *components.MenuCtx) *api.InteractionResponse {
 	// Send the message and the result to the report channel
-	reportID := discord.ChannelID(1091726590544715988)
+	reportID := discord.ChannelID(1093802419546238976)
 	data := ctx.Data.(*MoreResultData)
 	_, err := ctx.S.SendMessageComplex(reportID, api.SendMessageData{
 		Content: fmt.Sprintf("Report from %s", ctx.InteractionEvent.Member.User.Username),
