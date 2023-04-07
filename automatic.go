@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -128,7 +129,7 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 
 	cutResult := []*utilities.APIResult{result[0]}
 
-	m, _ := s.SendMessageComplex(e.ChannelID, api.SendMessageData{
+	m, err := s.SendMessageComplex(e.ChannelID, api.SendMessageData{
 		Embeds: []discord.Embed{embed},
 		Files: []sendpart.File{
 			{
@@ -146,6 +147,10 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 			},
 		},
 	})
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	utilities.Cache.Set(m.ID.String(), components.Menu{
 		Data: &MoreResultData{
