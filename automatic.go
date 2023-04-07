@@ -16,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 )
 
@@ -115,9 +116,8 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 
 	// Embed with the result
 	embed := discord.Embed{
-		Title:       "Scan Results",
-		Description: "The results may be affected by the April Fools event. Come check out the new support server!",
-		Color:       0x00ff00,
+		Title: "Scan Results",
+		Color: 0x00ff00,
 		Image: &discord.EmbedImage{
 			URL: "attachment://result.png",
 		},
@@ -148,35 +148,100 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	})
 
 	utilities.Cache.Set(m.ID.String(), components.Menu{
-		Data: result,
-		Fn:   moreResult,
+		Data: &MoreResultData{
+			results:  result,
+			imageURL: imageURL,
+		},
+		Fn: moreResult,
 	}, 0)
 }
 
+type MoreResultData struct {
+	results  []*utilities.APIResult
+	imageURL string
+}
+
 func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
-	results := ctx.Data.([]*utilities.APIResult)
+	data := ctx.Data.(*MoreResultData)
+	utilities.Cache.Set(ctx.Message.ID.String(), components.Menu{
+		Data: data,
+		Fn:   report,
+	}, 0)
 	return &api.InteractionResponse{
 		Type: api.UpdateMessage,
 		Data: &api.InteractionResponseData{
 			Embeds: &[]discord.Embed{
 				{
-					Title:       "Scan Results",
-					Description: "The results may be affected by the April Fools event. Come check out the new support server!",
-					Color:       0x00ff00,
+					Title: "Scan Results",
+					Color: 0x00ff00,
 					Image: &discord.EmbedImage{
-						URL: "attachment://result.png",
+						URL: "attachment://result2.png",
 					},
 					Footer: &discord.EmbedFooter{
 						Text: "Support : https://discord.gg/ZEAvn2M762",
 					},
 				},
 			},
-			Files: []sendpart.File{
-				{
-					Name:   "result.png",
-					Reader: utilities.GenerateImage(results),
+			Components: &discord.ContainerComponents{
+				&discord.ActionRowComponent{
+					&discord.ButtonComponent{
+						Label:    "Report",
+						Style:    discord.DangerButtonStyle(),
+						CustomID: "report",
+					},
 				},
 			},
+			Files: []sendpart.File{
+				{
+					Name:   "result2.png",
+					Reader: utilities.GenerateImage(data.results),
+				},
+			},
+		},
+	}
+}
+
+func report(ctx *components.MenuCtx) *api.InteractionResponse {
+	// Send the message and the result to the report channel
+	reportID := discord.ChannelID(1091726590544715988)
+	data := ctx.Data.(*MoreResultData)
+	_, err := ctx.S.SendMessageComplex(reportID, api.SendMessageData{
+		Content: fmt.Sprintf("Report from %s", ctx.InteractionEvent.Member.User.Username),
+		Embeds: []discord.Embed{
+			{
+				Title:       "Scan Results",
+				Description: data.imageURL,
+				Color:       0x00ff00,
+				Image: &discord.EmbedImage{
+					URL: "attachment://result.png",
+				},
+				Footer: &discord.EmbedFooter{
+					Text: "Support : https://discord.gg/ZEAvn2M762",
+				},
+			},
+		},
+		Files: []sendpart.File{
+			{
+				Name:   "result.png",
+				Reader: utilities.GenerateImage(data.results),
+			},
+		},
+	})
+	if err != nil {
+		return &api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{
+				Content: option.NewNullableString("An error occured while sending the report"),
+				Flags:   discord.EphemeralMessage,
+			},
+		}
+	}
+	utilities.Cache.Delete(ctx.Message.ID.String())
+	return &api.InteractionResponse{
+		Type: api.MessageInteractionWithSource,
+		Data: &api.InteractionResponseData{
+			Content: option.NewNullableString("Report sent"),
+			Flags:   discord.EphemeralMessage,
 		},
 	}
 }

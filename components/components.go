@@ -10,8 +10,8 @@ import (
 )
 
 type componentHandler struct {
-	s *state.State
-	m *shard.Manager
+	S *state.State
+	M *shard.Manager
 }
 
 type Menu struct {
@@ -28,8 +28,8 @@ type MenuCtx struct {
 
 func NewHandler(s *state.State, m *shard.Manager) *componentHandler {
 	h := &componentHandler{
-		s: s,
-		m: m,
+		S: s,
+		M: m,
 	}
 
 	return h
