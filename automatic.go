@@ -180,7 +180,7 @@ func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
 					Title: "Scan Results",
 					Color: 0x00ff00,
 					Image: &discord.EmbedImage{
-						URL: "attachment://result.png?d",
+						URL: "attachment://result.png",
 					},
 					Footer: &discord.EmbedFooter{
 						Text: "Support : https://discord.gg/ZEAvn2M762",
