@@ -39,6 +39,7 @@ func main() {
 		// Add the needed Gateway intents.
 		s.AddIntents(gateway.IntentGuildMessages)
 		s.AddIntents(gateway.IntentDirectMessages)
+		s.AddIntents(gateway.IntentMessageContent)
 
 		s.AddIntents(gateway.IntentGuilds)
 
