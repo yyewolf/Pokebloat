@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/api/cmdroute"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/api/cmdroute"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/state"
+	"github.com/yyewolf/arikawa/v3/utils/json/option"
 )
 
 func (h *interactionHandler) cmdStatus(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {

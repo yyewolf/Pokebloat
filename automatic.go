@@ -13,12 +13,12 @@ import (
 	"pokebloat/utilities"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/gateway"
+	"github.com/yyewolf/arikawa/v3/state"
+	"github.com/yyewolf/arikawa/v3/utils/json/option"
+	"github.com/yyewolf/arikawa/v3/utils/sendpart"
 )
 
 var noTransform = []discord.UserID{
@@ -180,7 +180,7 @@ func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
 					Title: "Scan Results",
 					Color: 0x00ff00,
 					Image: &discord.EmbedImage{
-						URL: "attachment://result2.png",
+						URL: "attachment://result.png?d",
 					},
 					Footer: &discord.EmbedFooter{
 						Text: "Support : https://discord.gg/ZEAvn2M762",
@@ -198,7 +198,7 @@ func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
 			},
 			Files: []sendpart.File{
 				{
-					Name:   "result2.png",
+					Name:   "result.png",
 					Reader: utilities.GenerateImage(data.results),
 				},
 			},

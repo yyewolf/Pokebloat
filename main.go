@@ -9,14 +9,14 @@ import (
 	"pokebloat/components"
 	"strconv"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/api/cmdroute"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/session/shard"
-	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/joho/godotenv"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/api/cmdroute"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/gateway"
+	"github.com/yyewolf/arikawa/v3/session/shard"
+	"github.com/yyewolf/arikawa/v3/state"
+	"github.com/yyewolf/arikawa/v3/utils/json/option"
 )
 
 var AdminID = discord.UserID(0)
@@ -27,7 +27,6 @@ func main() {
 	if token == "" {
 		log.Fatalln("No $BOT_TOKEN given.")
 	}
-
 	aID := os.Getenv("ADMIN_ID")
 	if aID == "" {
 		log.Fatalln("No $ADMIN_ID given.")

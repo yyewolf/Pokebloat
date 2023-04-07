@@ -3,10 +3,10 @@ package components
 import (
 	"pokebloat/utilities"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/session/shard"
-	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/session/shard"
+	"github.com/yyewolf/arikawa/v3/state"
 )
 
 type componentHandler struct {
@@ -40,12 +40,16 @@ func (h *componentHandler) HandleInteraction(e *discord.InteractionEvent) *api.I
 		return nil
 	}
 	menuid := e.Message.ID
+	menuidI := e.Message.Interaction.ID
 
 	menu, found := utilities.Cache.Get(menuid.String())
 	if !found {
-		// Just ack to discord
-		return &api.InteractionResponse{
-			Type: api.DeferredMessageUpdate,
+		menu, found = utilities.Cache.Get(menuidI.String())
+		if !found {
+			// Just ack to discord
+			return &api.InteractionResponse{
+				Type: api.DeferredMessageUpdate,
+			}
 		}
 	}
 

@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/api/cmdroute"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/session/shard"
-	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/api/cmdroute"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/session/shard"
+	"github.com/yyewolf/arikawa/v3/state"
 )
 
 type interactionHandler struct {

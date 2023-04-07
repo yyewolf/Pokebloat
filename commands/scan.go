@@ -9,14 +9,15 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"pokebloat/components"
 	"pokebloat/utilities"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/api/cmdroute"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/yyewolf/arikawa/v3/api"
+	"github.com/yyewolf/arikawa/v3/api/cmdroute"
+	"github.com/yyewolf/arikawa/v3/discord"
+	"github.com/yyewolf/arikawa/v3/utils/json/option"
+	"github.com/yyewolf/arikawa/v3/utils/sendpart"
 )
 
 func (h *interactionHandler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
@@ -161,12 +162,66 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 		},
 	}
 
+	utilities.Cache.Set(cmd.Event.ID.String(), components.Menu{
+		Data: &MoreResultData{
+			results:     result,
+			imageURL:    imageURL,
+			interaction: cmd.Event,
+		},
+		Fn: moreResult,
+	}, 0)
+	cutResult := []*utilities.APIResult{result[0]}
+
 	return &api.InteractionResponseData{
 		Embeds: &[]discord.Embed{embed},
 		Files: []sendpart.File{
 			{
 				Name:   "result.png",
-				Reader: utilities.GenerateImage(result),
+				Reader: utilities.GenerateImage(cutResult),
+			},
+		},
+		Components: &discord.ContainerComponents{
+			&discord.ActionRowComponent{
+				&discord.ButtonComponent{
+					Label:    "More Results",
+					Style:    discord.PrimaryButtonStyle(),
+					CustomID: "more_results",
+				},
+			},
+		},
+	}
+}
+
+type MoreResultData struct {
+	results     []*utilities.APIResult
+	imageURL    string
+	interaction *discord.InteractionEvent
+}
+
+func moreResult(ctx *components.MenuCtx) *api.InteractionResponse {
+	data := ctx.Data.(*MoreResultData)
+	utilities.Cache.Delete(ctx.Message.ID.String())
+	return &api.InteractionResponse{
+		Type: api.UpdateMessage,
+		Data: &api.InteractionResponseData{
+			Embeds: &[]discord.Embed{
+				{
+					Title: "Scan Results",
+					Color: 0x00ff00,
+					Image: &discord.EmbedImage{
+						URL: "attachment://result2.png",
+					},
+					Footer: &discord.EmbedFooter{
+						Text: "Support : https://discord.gg/ZEAvn2M762",
+					},
+				},
+			},
+			Components: &discord.ContainerComponents{},
+			Files: []sendpart.File{
+				{
+					Name:   "result2.png",
+					Reader: utilities.GenerateImage(data.results),
+				},
 			},
 		},
 	}
