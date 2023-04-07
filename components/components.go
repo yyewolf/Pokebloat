@@ -36,7 +36,7 @@ func NewHandler(s *state.State, m *shard.Manager) *componentHandler {
 }
 
 func (h *componentHandler) HandleInteraction(e *discord.InteractionEvent) *api.InteractionResponse {
-	if e.Data.InteractionType() != discord.CommandInteractionType {
+	if e.Data.InteractionType() != discord.ComponentInteractionType {
 		return nil
 	}
 	menuid := e.Message.ID
