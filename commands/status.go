@@ -23,6 +23,9 @@ func (h *interactionHandler) cmdStatus(ctx context.Context, cmd cmdroute.Command
 	userCount := 0
 	for s := 0; s < h.m.NumShards(); s++ {
 		shard := h.m.Shard(s)
+		if shard == nil {
+			continue
+		}
 		state := shard.(*state.State)
 		guilds, err := state.GuildStore.Guilds()
 		if err != nil {
