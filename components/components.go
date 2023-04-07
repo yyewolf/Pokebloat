@@ -40,7 +40,10 @@ func (h *componentHandler) HandleInteraction(e *discord.InteractionEvent) *api.I
 		return nil
 	}
 	menuid := e.Message.ID
-	menuidI := e.Message.Interaction.ID
+	var menuidI discord.InteractionID
+	if e.Message.Interaction != nil {
+		menuidI = e.Message.Interaction.ID
+	}
 
 	menu, found := utilities.Cache.Get(menuid.String())
 	if !found {
