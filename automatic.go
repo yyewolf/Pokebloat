@@ -1,14 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
-	"net/http"
-	"os"
 	"pokebloat/components"
 	"pokebloat/utilities"
 	"strings"
@@ -20,10 +15,6 @@ import (
 	"github.com/yyewolf/arikawa/v3/utils/json/option"
 	"github.com/yyewolf/arikawa/v3/utils/sendpart"
 )
-
-var noTransform = []discord.UserID{
-	discord.UserID(669228505128501258),
-}
 
 func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	// Check if there's an embed
@@ -63,51 +54,17 @@ func handleMessages(s *state.State, e *gateway.MessageCreateEvent) {
 	var imageExtension = strings.Split(imageURL, ".")[len(strings.Split(imageURL, "."))-1]
 
 	// Download image
-	rep, err := http.Get(imageURL)
+	img, err := utilities.DownloadImage(imageURL)
+
+	newimg, err := utilities.ApplyTransforms(img, e.Author.ID, imageExtension)
 	if err != nil {
 		return
 	}
 
-	client := &http.Client{}
-
-	needTransform := true
-	for _, id := range noTransform {
-		if id == message.Author.ID {
-			needTransform = false
-			break
-		}
-	}
-
-	if needTransform {
-		rep.Body = utilities.RemoveImageBackground(rep.Body, imageExtension)
-	}
-
-	// Send to the API
-	url := fmt.Sprintf("%s/models/%s/predict?k=3", os.Getenv("API_URL"), "pokemons")
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
+	resp, err := utilities.PredictImage(newimg, imageExtension)
 	if err != nil {
 		return
 	}
-	io.Copy(part, rep.Body)
-	writer.Close()
-	rep.Body.Close()
-
-	r, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return
-	}
-	r.Header.Add("Content-Type", writer.FormDataContentType())
-	rep, err = client.Do(r)
-	if err != nil {
-		return
-	}
-	resp, err := io.ReadAll(rep.Body)
-	if err != nil {
-		return
-	}
-	rep.Body.Close()
 
 	var result []*utilities.APIResult
 	err = json.Unmarshal(resp, &result)

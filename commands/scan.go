@@ -1,14 +1,8 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"mime/multipart"
-	"net/http"
-	"os"
 	"pokebloat/components"
 	"pokebloat/utilities"
 	"strings"
@@ -21,14 +15,18 @@ import (
 )
 
 func (h *interactionHandler) cmdScanPokemon(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	return h.cmdScan(ctx, cmd, "pokemons", false)
+	return h.cmdScan(ctx, cmd, "pokemons", "")
 }
 
 func (h *interactionHandler) cmdScanPokemonBg(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
-	return h.cmdScan(ctx, cmd, "pokemons", true)
+	return h.cmdScan(ctx, cmd, "pokemons", "bg")
 }
 
-func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string, transform bool) *api.InteractionResponseData {
+func (h *interactionHandler) cmdScanPokemonPc(ctx context.Context, cmd cmdroute.CommandData) *api.InteractionResponseData {
+	return h.cmdScan(ctx, cmd, "pokemons", "pc")
+}
+
+func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandData, model string, forceTransform string) *api.InteractionResponseData {
 	var message *discord.Message
 	data := cmd.Event.Data.(*discord.CommandInteraction)
 	if data.Resolved.Messages != nil {
@@ -73,63 +71,29 @@ func (h *interactionHandler) cmdScan(ctx context.Context, cmd cmdroute.CommandDa
 	var imageExtension = strings.Split(imageURL, ".")[len(strings.Split(imageURL, "."))-1]
 
 	// Download image
-	rep, err := http.Get(imageURL)
+	img, err := utilities.DownloadImage(imageURL)
 	if err != nil {
 		return &api.InteractionResponseData{
-			Content: option.NewNullableString("Could not download image from message"),
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
 
-	if transform {
-		rep.Body = utilities.RemoveImageBackground(rep.Body, imageExtension)
-		if rep.Body == nil {
-			return &api.InteractionResponseData{
-				Content: option.NewNullableString("Could not remove background from image"),
-				Flags:   discord.MessageFlags(discord.EphemeralMessage),
-			}
+	newimg, err := utilities.ApplyTransformsManual(img, forceTransform, imageExtension)
+	if err != nil {
+		return &api.InteractionResponseData{
+			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
+			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
 
-	// Send to the API
-	url := fmt.Sprintf("%s/models/%s/predict?k=3", os.Getenv("API_URL"), model)
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("upload", "image."+imageExtension)
+	resp, err := utilities.PredictImage(newimg, imageExtension)
 	if err != nil {
 		return &api.InteractionResponseData{
 			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
 			Flags:   discord.MessageFlags(discord.EphemeralMessage),
 		}
 	}
-	io.Copy(part, rep.Body)
-	writer.Close()
-	rep.Body.Close()
-
-	r, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return &api.InteractionResponseData{
-			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
-			Flags:   discord.MessageFlags(discord.EphemeralMessage),
-		}
-	}
-	r.Header.Add("Content-Type", writer.FormDataContentType())
-	client := &http.Client{}
-	rep, err = client.Do(r)
-	if err != nil {
-		return &api.InteractionResponseData{
-			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
-			Flags:   discord.MessageFlags(discord.EphemeralMessage),
-		}
-	}
-	resp, err := io.ReadAll(rep.Body)
-	if err != nil {
-		return &api.InteractionResponseData{
-			Content: option.NewNullableString("The backend service is currently down. Please try again later."),
-			Flags:   discord.MessageFlags(discord.EphemeralMessage),
-		}
-	}
-	rep.Body.Close()
 
 	var result []*utilities.APIResult
 	err = json.Unmarshal(resp, &result)

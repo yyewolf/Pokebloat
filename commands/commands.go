@@ -24,8 +24,9 @@ func NewHandler(s *state.State, m *shard.Manager) *interactionHandler {
 	// Automatically defer handles if they're slow.
 	h.Use(cmdroute.Deferrable(s, cmdroute.DeferOpts{}))
 	h.AddFunc("ping", h.cmdPing)
-	h.AddFunc("pokemon_acc", h.cmdScanPokemonBg)
-	h.AddFunc("pokemon", h.cmdScanPokemon)
+	h.AddFunc("scan_pc", h.cmdScanPokemonPc)
+	h.AddFunc("scan_bg", h.cmdScanPokemonBg)
+	h.AddFunc("scan", h.cmdScanPokemon)
 	h.AddFunc("invite", h.cmdInvite)
 	h.AddFunc("status", h.cmdStatus)
 	return h
@@ -46,10 +47,14 @@ var Commands = []api.CreateCommandData{
 	},
 	{
 		Type: discord.MessageCommand,
-		Name: "pokemon",
+		Name: "scan",
 	},
 	{
 		Type: discord.MessageCommand,
-		Name: "pokemon_acc",
+		Name: "scan_bg",
+	},
+	{
+		Type: discord.MessageCommand,
+		Name: "scan_pc",
 	},
 }
